@@ -36,6 +36,7 @@ namespace Irony.Samples.SQL
             var CONSTRAINT = ToTerm("CONSTRAINT");
             var INDEX = ToTerm("INDEX");
             var CLUSTERED = ToTerm("CLUSTERED");
+            var NONCLUSTERED = ToTerm("NONCLUSTERED");
             var ON = ToTerm("ON");
             var KEY = ToTerm("KEY");
             var PRIMARY = ToTerm("PRIMARY");
@@ -58,6 +59,7 @@ namespace Irony.Samples.SQL
             var stmt = new NonTerminal("stmt");
             var createTableStmt = new NonTerminal("createTableStmt");
             var createIndexStmt = new NonTerminal("createIndexStmt");
+            var primaryKeyStmt = new NonTerminal("primaryKeyStmt");
             var alterStmt = new NonTerminal("alterStmt");
             var dropTableStmt = new NonTerminal("dropTableStmt");
             var dropIndexStmt = new NonTerminal("dropIndexStmt");
@@ -75,11 +77,13 @@ namespace Irony.Samples.SQL
             var constraintListOpt = new NonTerminal("constraintListOpt");
             var constraintTypeOpt = new NonTerminal("constraintTypeOpt");
             var idlist = new NonTerminal("idlist");
+            var idParamList = new NonTerminal("idParamList");
             var idlistPar = new NonTerminal("idlistPar");
-            var uniqueOpt = new NonTerminal("uniqueOpt");
             var orderList = new NonTerminal("orderList");
             var orderMember = new NonTerminal("orderMember");
             var orderDirOpt = new NonTerminal("orderDirOpt");
+            var defaultValue = new NonTerminal("defaultValue");
+            var indexType = new NonTerminal("indexType");
             var withClauseOpt = new NonTerminal("withClauseOpt");
             var alterCmd = new NonTerminal("alterCmd");
             var insertData = new NonTerminal("insertData");
@@ -139,27 +143,30 @@ namespace Irony.Samples.SQL
             //Create table
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + ")" + constraintListOpt;
             fieldDefList.Rule = MakePlusRule(fieldDefList, comma, fieldDef);
-            fieldDef.Rule = Id + typeName + typeParamsOpt + nullSpecOpt | Id + typeName + typeParamsOpt + nullSpecOpt + DEFAULT + "(" + (number | string_literal | funCall) + ")" | constraintListOpt;
+            fieldDef.Rule = Id + typeName + typeParamsOpt + nullSpecOpt | Id + typeName + typeParamsOpt + nullSpecOpt + DEFAULT + defaultValue | constraintListOpt;
             nullSpecOpt.Rule = NULL | NOT + NULL | Empty;
             typeName.Rule = ToTerm("BIT") | "DATE" | "TIME" | "TIMESTAMP" | "DECIMAL" | "REAL" | "FLOAT" | "TINYINT" | "SMALLINT" | "INTEGER" | "BIGINT"
                                          | "INTERVAL" | "CHARACTER"
                 // MS SQL types:  
                                          | "DATETIME" | "INT" | "DOUBLE" | "CHAR" | "NCHAR" | "VARCHAR" | "NVARCHAR"
                                          | "IMAGE" | "TEXT" | "NTEXT" | "UNIQUEIDENTIFIER";
-            typeParamsOpt.Rule = "(" + number + ")" | "(MAX)" | "(" + number + comma + number + ")" | Empty;
+            typeParamsOpt.Rule = "(MAX)" | "(" + idParamList + ")" | Empty;
             constraintDef.Rule = CONSTRAINT + Id + constraintTypeOpt;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
-            constraintTypeOpt.Rule = PRIMARY + (KEY | KEY + CLUSTERED) + idlistPar | UNIQUE + idlistPar | NOT + NULL + idlistPar
+            constraintTypeOpt.Rule = primaryKeyStmt + indexType + idlistPar | UNIQUE + idlistPar | NOT + NULL + idlistPar
                                    | "Foreign" + KEY + idlistPar + "References" + Id + idlistPar;
-            idlistPar.Rule = "(" + (idlist | idlist + orderDirOpt) + ")";
+            idlistPar.Rule = "(" + orderList + ")";
             idlist.Rule = MakePlusRule(idlist, comma, Id);
+            idParamList.Rule = MakePlusRule(idParamList, comma, Id);
+            defaultValue.Rule = "(" + (number | string_literal | funCall) + ")";
 
             //Create Index
-            createIndexStmt.Rule = CREATE + uniqueOpt + INDEX + Id + ON + Id + orderList + withClauseOpt;
-            uniqueOpt.Rule = Empty | UNIQUE;
+            primaryKeyStmt.Rule = PRIMARY + KEY;
+            createIndexStmt.Rule = CREATE + indexType + INDEX + Id + ON + Id + orderList + withClauseOpt;
             orderList.Rule = MakePlusRule(orderList, comma, orderMember);
             orderMember.Rule = Id + orderDirOpt;
             orderDirOpt.Rule = Empty | "ASC" | "DESC";
+            indexType.Rule = Empty | UNIQUE | CLUSTERED | NONCLUSTERED;
             withClauseOpt.Rule = Empty | WITH + PRIMARY | WITH + "Disallow" + NULL | WITH + "Ignore" + NULL;
 
             //Alter 
