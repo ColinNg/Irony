@@ -36,7 +36,7 @@ namespace Irony.Parsing {
   public class Token  {
     public Terminal Terminal {get; private set;} 
     public KeyTerm KeyTerm;
-    public readonly SourceLocation Location;
+    public readonly SourceLocation Location; 
     public readonly string Text;
     
     public object Value;
@@ -76,18 +76,6 @@ namespace Irony.Parsing {
       get { return Text == null ? 0 : Text.Length; }
     }
 
-    public SourceLocation EndLocation {
-      get {
-        int length = Length;
-        if (length == 0) return Location;
-        int pos = Location.Position + length;
-        string[] lines = Text.Split('\n');
-        int lineCount = lines.Length - 1;
-        int column = lineCount > 0 ? lines[lines.Length - 1].Length : Location.Column + length;
-        return new SourceLocation(pos, Location.Line + lineCount, column);
-      }
-    }
-
     //matching opening/closing brace
     public Token OtherBrace;
 
@@ -103,6 +91,10 @@ namespace Irony.Parsing {
   //Some terminals may need to return a bunch of tokens in one call to TryMatch; MultiToken is a container for these tokens
   public class MultiToken : Token {
     public TokenList ChildTokens;
+
+    public MultiToken(params Token[] tokens) : this(tokens[0].Terminal, tokens[0].Location, new TokenList()) {
+        ChildTokens.AddRange(tokens);
+    }
     public MultiToken(Terminal term, SourceLocation location, TokenList childTokens) : base(term, location, string.Empty, null) {
       ChildTokens = childTokens;
     }

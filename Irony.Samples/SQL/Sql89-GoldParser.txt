@@ -101,6 +101,7 @@ Id             = ({Letter}{Id Ch Standard}* | '['{Id Ch Extended}+']')  ('.'({Le
           |  DECIMAL
           |  REAL
           |  FLOAT
+          |  TINYINT
           |  SMALLINT
           |  INTEGER
           |  INTERVAL

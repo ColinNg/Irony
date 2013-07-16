@@ -221,10 +221,10 @@ namespace Irony.Parsing {
 
     public SourceSpan ComputeStackRangeSpan(int nodeCount) {
       if (nodeCount == 0)
-        return new SourceSpan(CurrentParserInput.Span.Location, CurrentParserInput.Span.Location);
+        return new SourceSpan(CurrentParserInput.Span.Location, 0);
       var first = ParserStack[ParserStack.Count - nodeCount];
       var last = ParserStack.Top;
-      return new SourceSpan(first.Span.Location, last.Span.EndLocation);
+      return new SourceSpan(first.Span.Location, last.Span.EndPosition - first.Span.Location.Position);
     }
 
 
