@@ -23,6 +23,7 @@ namespace Irony.Samples.SQL
             var Id_simple = TerminalFactory.CreateSqlExtIdentifier(this, "id_simple"); //covers normal identifiers (abc) and quoted id's ([abc d], "abc d")
             var comma = ToTerm(",");
             var dot = ToTerm(".");
+            var equals = ToTerm("=");
             var CREATE = ToTerm("CREATE");
             var NULL = ToTerm("NULL");
             var NOT = ToTerm("NOT");
@@ -53,6 +54,7 @@ namespace Irony.Samples.SQL
             var JOIN = ToTerm("JOIN");
             var BY = ToTerm("BY");
             var DEFAULT = ToTerm("DEFAULT");
+            var CHECK = ToTerm("CHECK");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
@@ -73,17 +75,18 @@ namespace Irony.Samples.SQL
             var typeName = new NonTerminal("typeName");
             var typeSpec = new NonTerminal("typeSpec");
             var typeParamsOpt = new NonTerminal("typeParams");
-            var constraintDef = new NonTerminal("constraintDef");
             var constraintListOpt = new NonTerminal("constraintListOpt");
-            var constraintTypeOpt = new NonTerminal("constraintTypeOpt");
+            var constraintDef = new NonTerminal("constraintDef");
+            var constraintType = new NonTerminal("constraintTypeOpt");
+            var defaultValueOpt = new NonTerminal("defaultValueOpt");
             var idlist = new NonTerminal("idlist");
             var idParamList = new NonTerminal("idParamList");
             var idlistPar = new NonTerminal("idlistPar");
             var orderList = new NonTerminal("orderList");
             var orderMember = new NonTerminal("orderMember");
             var orderDirOpt = new NonTerminal("orderDirOpt");
-            var defaultValue = new NonTerminal("defaultValue");
-            var indexType = new NonTerminal("indexType");
+            var defaultValueParams = new NonTerminal("defaultValue");
+            var indexTypeOpt = new NonTerminal("indexType");
             var withClauseOpt = new NonTerminal("withClauseOpt");
             var alterCmd = new NonTerminal("alterCmd");
             var insertData = new NonTerminal("insertData");
@@ -126,6 +129,10 @@ namespace Irony.Samples.SQL
             var stmtList = new NonTerminal("stmtList");
             var funArgs = new NonTerminal("funArgs");
             var inStmt = new NonTerminal("inStmt");
+            var settingList = new NonTerminal("settingList");
+            var settingListItem = new NonTerminal("settingListItem");
+            var onOpt = new NonTerminal("onOpt");
+            var defaultValueParamsList = new NonTerminal("defaultValueParamsList");
 
             //BNF Rules
             this.Root = stmtList;
@@ -140,38 +147,53 @@ namespace Irony.Samples.SQL
                       | dropTableStmt | dropIndexStmt
                       | selectStmt | insertStmt | updateStmt | deleteStmt
                       | "GO";
+
+            onOpt.Rule = Empty | ON + Id;
+
             //Create table
-            createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + ")" + constraintListOpt;
+            createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + constraintListOpt + withClauseOpt + ")" + onOpt;
             fieldDefList.Rule = MakePlusRule(fieldDefList, comma, fieldDef);
-            fieldDef.Rule = Id + typeName + typeParamsOpt + nullSpecOpt | Id + typeName + typeParamsOpt + nullSpecOpt + DEFAULT + defaultValue | constraintListOpt;
-            nullSpecOpt.Rule = NULL | NOT + NULL | Empty;
-            typeName.Rule = ToTerm("BIT") | "DATE" | "TIME" | "TIMESTAMP" | "DECIMAL" | "REAL" | "FLOAT" | "TINYINT" | "SMALLINT" | "INTEGER" | "BIGINT"
+            fieldDef.Rule = Id + typeName + typeParamsOpt + nullSpecOpt + defaultValueOpt |
+                Id + typeName + typeParamsOpt + nullSpecOpt + constraintListOpt |
+                 constraintListOpt;
+
+            nullSpecOpt.Rule = Empty | NULL | NOT + NULL;
+            typeName.Rule = MakePlusRule(typeName, dot, Id_simple);
+            /*typeName.Rule = ToTerm("BIT") | "DATE" | "TIME" | "TIMESTAMP" | "DECIMAL" | "REAL" | "FLOAT" | "TINYINT" | "SMALLINT" | "INTEGER" | "BIGINT"
                                          | "INTERVAL" | "CHARACTER"
                 // MS SQL types:  
                                          | "DATETIME" | "INT" | "DOUBLE" | "CHAR" | "NCHAR" | "VARCHAR" | "NVARCHAR"
-                                         | "IMAGE" | "TEXT" | "NTEXT" | "UNIQUEIDENTIFIER";
-            typeParamsOpt.Rule = "(MAX)" | "(" + idParamList + ")" | Empty;
-            constraintDef.Rule = CONSTRAINT + Id + constraintTypeOpt;
+                                         | "IMAGE" | "TEXT" | "NTEXT" | "UNIQUEIDENTIFIER" | "NUMERIC";*/
+            typeParamsOpt.Rule = defaultValueParams | defaultValueParamsList | Empty;
+            constraintDef.Rule = CONSTRAINT + Id + constraintType;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
-            constraintTypeOpt.Rule = primaryKeyStmt + indexType + idlistPar | UNIQUE + idlistPar | NOT + NULL + idlistPar
-                                   | "Foreign" + KEY + idlistPar + "References" + Id + idlistPar;
+            constraintType.Rule = defaultValueOpt 
+                | primaryKeyStmt + indexTypeOpt + idlistPar
+                | UNIQUE + idlistPar
+                | CHECK + "(" + expression + ")"
+                | NOT + NULL + idlistPar
+                | "Foreign" + KEY + idlistPar + "References" + Id + idlistPar;
             idlistPar.Rule = "(" + orderList + ")";
             idlist.Rule = MakePlusRule(idlist, comma, Id);
+            defaultValueParamsList.Rule = MakePlusRule(defaultValueParamsList, comma, term);
             idParamList.Rule = MakePlusRule(idParamList, comma, Id);
-            defaultValue.Rule = "(" + (number | string_literal | funCall) + ")";
+            defaultValueOpt.Rule = Empty | (DEFAULT + defaultValueParams);
+            defaultValueParams.Rule = term | "(" + term + ")";
 
             //Create Index
             primaryKeyStmt.Rule = PRIMARY + KEY;
-            createIndexStmt.Rule = CREATE + indexType + INDEX + Id + ON + Id + orderList + withClauseOpt;
+            createIndexStmt.Rule = CREATE + indexTypeOpt + INDEX + Id + ON + Id + orderList;
             orderList.Rule = MakePlusRule(orderList, comma, orderMember);
             orderMember.Rule = Id + orderDirOpt;
             orderDirOpt.Rule = Empty | "ASC" | "DESC";
-            indexType.Rule = Empty | UNIQUE | CLUSTERED | NONCLUSTERED;
-            withClauseOpt.Rule = Empty | WITH + PRIMARY | WITH + "Disallow" + NULL | WITH + "Ignore" + NULL;
+            indexTypeOpt.Rule = Empty | UNIQUE | CLUSTERED | NONCLUSTERED;
+            settingList.Rule = MakePlusRule(settingList, comma, settingListItem);
+            settingListItem.Rule = Id + equals + term;
+            withClauseOpt.Rule = Empty | (WITH + PRIMARY | WITH + "Disallow" + NULL | WITH + "Ignore" + NULL | WITH + "(" + settingList + ")" + onOpt);
 
             //Alter 
             alterStmt.Rule = ALTER + TABLE + Id + alterCmd;
-            alterCmd.Rule = ADD + COLUMN + fieldDefList + constraintListOpt
+            alterCmd.Rule = ADD + COLUMN + fieldDefList + constraintDef
                           | ADD + constraintDef
                           | DROP + COLUMN + Id
                           | DROP + CONSTRAINT + Id;
@@ -254,6 +276,5 @@ namespace Irony.Samples.SQL
             binOp.SetFlag(TermFlags.InheritPrecedence);
 
         }//constructor
-
     }//class
 }//namespace
