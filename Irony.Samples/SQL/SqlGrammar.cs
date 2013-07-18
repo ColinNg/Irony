@@ -11,14 +11,15 @@ namespace Irony.Samples.SQL
     [Language("SQL", "89", "SQL 89 grammar")]
     public class SqlGrammar : Grammar
     {
-        public SqlGrammar() : base(false)
+        public SqlGrammar()
+            : base(false)
         { //SQL is case insensitive
             //Terminals
             var comment = new CommentTerminal("comment", "/*", "*/");
             var lineComment = new CommentTerminal("line_comment", "--", "\n", "\r\n");
             NonGrammarTerminals.Add(comment);
             NonGrammarTerminals.Add(lineComment);
-            var number = new NumberLiteral("number");
+            var number = TerminalFactory.CreateCSharpNumber("number");
             var string_literal = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote);
             var Id_simple = TerminalFactory.CreateSqlExtIdentifier(this, "id_simple"); //covers normal identifiers (abc) and quoted id's ([abc d], "abc d")
             var comma = ToTerm(",");
@@ -167,7 +168,7 @@ namespace Irony.Samples.SQL
             typeParamsOpt.Rule = defaultValueParams | defaultValueParamsList | Empty;
             constraintDef.Rule = CONSTRAINT + Id + constraintType;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
-            constraintType.Rule = defaultValueOpt 
+            constraintType.Rule = defaultValueOpt
                 | primaryKeyStmt + indexTypeOpt + idlistPar
                 | UNIQUE + idlistPar
                 | CHECK + "(" + expression + ")"
