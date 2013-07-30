@@ -75,7 +75,6 @@ namespace Irony.Samples.SQL
             var nullSpecOpt = new NonTerminal("nullSpecOpt");
             var typeName = new NonTerminal("typeName");
             var typeSpec = new NonTerminal("typeSpec");
-            var typeParamsOpt = new NonTerminal("typeParams");
             var constraintListOpt = new NonTerminal("constraintListOpt");
             var constraintDef = new NonTerminal("constraintDef");
             var constraintType = new NonTerminal("constraintTypeOpt");
@@ -134,6 +133,7 @@ namespace Irony.Samples.SQL
             var settingListItem = new NonTerminal("settingListItem");
             var onOpt = new NonTerminal("onOpt");
             var defaultValueParamsList = new NonTerminal("defaultValueParamsList");
+            var typeNameParamsList = new NonTerminal("typeNameParamsList");
 
             //BNF Rules
             this.Root = stmtList;
@@ -154,22 +154,22 @@ namespace Irony.Samples.SQL
             //Create table
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + constraintListOpt + withClauseOpt + ")" + onOpt;
             fieldDefList.Rule = MakePlusRule(fieldDefList, comma, fieldDef);
-            fieldDef.Rule = Id + typeName + typeParamsOpt + nullSpecOpt + defaultValueOpt |
-                Id + typeName + typeParamsOpt + nullSpecOpt + constraintListOpt |
+            fieldDef.Rule = Id + typeName + nullSpecOpt + defaultValueOpt |
+                Id + typeName + nullSpecOpt + constraintListOpt |
                  constraintListOpt;
 
             nullSpecOpt.Rule = Empty | NULL | NOT + NULL;
-            typeName.Rule = MakePlusRule(typeName, dot, Id_simple);
+            typeNameParamsList.Rule = MakePlusRule(typeNameParamsList, comma, term);
+            typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")";
             /*typeName.Rule = ToTerm("BIT") | "DATE" | "TIME" | "TIMESTAMP" | "DECIMAL" | "REAL" | "FLOAT" | "TINYINT" | "SMALLINT" | "INTEGER" | "BIGINT"
                                          | "INTERVAL" | "CHARACTER"
                 // MS SQL types:  
                                          | "DATETIME" | "INT" | "DOUBLE" | "CHAR" | "NCHAR" | "VARCHAR" | "NVARCHAR"
                                          | "IMAGE" | "TEXT" | "NTEXT" | "UNIQUEIDENTIFIER" | "NUMERIC";*/
-            typeParamsOpt.Rule = defaultValueParams | defaultValueParamsList | Empty;
             constraintDef.Rule = CONSTRAINT + Id + constraintType;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
             constraintType.Rule = defaultValueOpt
-                | primaryKeyStmt + indexTypeOpt + idlistPar
+                | primaryKeyStmt + indexTypeOpt + idlistPar + withClauseOpt
                 | UNIQUE + idlistPar
                 | CHECK + "(" + expression + ")"
                 | NOT + NULL + idlistPar
