@@ -170,7 +170,7 @@ namespace Irony.Samples.SQL
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
             constraintType.Rule = defaultValueOpt
                 | primaryKeyStmt + indexTypeOpt + idlistPar + withClauseOpt
-                | UNIQUE + idlistPar
+                | UNIQUE + indexTypeOpt + idlistPar
                 | CHECK + "(" + expression + ")"
                 | NOT + NULL + idlistPar
                 | "Foreign" + KEY + idlistPar + "References" + Id + idlistPar;
