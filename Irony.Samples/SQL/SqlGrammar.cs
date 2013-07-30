@@ -56,13 +56,16 @@ namespace Irony.Samples.SQL
             var BY = ToTerm("BY");
             var DEFAULT = ToTerm("DEFAULT");
             var CHECK = ToTerm("CHECK");
+            var REPLICATION = ToTerm("REPLICATION");
+            var FOR = ToTerm("FOR");
+            var COLLATE = ToTerm("COLLATE");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
             var stmt = new NonTerminal("stmt");
             var createTableStmt = new NonTerminal("createTableStmt");
             var createIndexStmt = new NonTerminal("createIndexStmt");
-            var primaryKeyStmt = new NonTerminal("primaryKeyStmt");
+            var primaryKeyOpt = new NonTerminal("primaryKeyOpt");
             var alterStmt = new NonTerminal("alterStmt");
             var dropTableStmt = new NonTerminal("dropTableStmt");
             var dropIndexStmt = new NonTerminal("dropIndexStmt");
@@ -81,12 +84,12 @@ namespace Irony.Samples.SQL
             var defaultValueOpt = new NonTerminal("defaultValueOpt");
             var idlist = new NonTerminal("idlist");
             var idParamList = new NonTerminal("idParamList");
-            var idlistPar = new NonTerminal("idlistPar");
+            var idlistParOpt = new NonTerminal("idlistPar");
             var orderList = new NonTerminal("orderList");
             var orderMember = new NonTerminal("orderMember");
             var orderDirOpt = new NonTerminal("orderDirOpt");
-            var defaultValueParams = new NonTerminal("defaultValue");
-            var indexTypeOpt = new NonTerminal("indexType");
+            var defaultValueParams = new NonTerminal("defaultValueParams");
+            var indexTypeOpt = new NonTerminal("indexTypeOpt");
             var withClauseOpt = new NonTerminal("withClauseOpt");
             var alterCmd = new NonTerminal("alterCmd");
             var insertData = new NonTerminal("insertData");
@@ -134,6 +137,9 @@ namespace Irony.Samples.SQL
             var onOpt = new NonTerminal("onOpt");
             var defaultValueParamsList = new NonTerminal("defaultValueParamsList");
             var typeNameParamsList = new NonTerminal("typeNameParamsList");
+            var notForReplOpt = new NonTerminal("notForReplOpt");
+            var collateOpt = new NonTerminal("collateOpt");
+            var columnDef = new NonTerminal("columnDef");
 
             //BNF Rules
             this.Root = stmtList;
@@ -154,27 +160,26 @@ namespace Irony.Samples.SQL
             //Create table
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + constraintListOpt + withClauseOpt + ")" + onOpt;
             fieldDefList.Rule = MakePlusRule(fieldDefList, comma, fieldDef);
-            fieldDef.Rule = Id + typeName + nullSpecOpt + defaultValueOpt |
-                Id + typeName + nullSpecOpt + constraintListOpt |
-                 constraintListOpt;
-
-            nullSpecOpt.Rule = Empty | NULL | NOT + NULL;
+            fieldDef.Rule = columnDef | constraintListOpt;
+            columnDef.Rule = Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + defaultValueOpt
+                | Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + constraintListOpt
+                | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + defaultValueOpt
+                | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + constraintListOpt;
+            notForReplOpt.Rule = Empty | (NOT + FOR + REPLICATION);
+            nullSpecOpt.Rule = Empty | (NOT + FOR + REPLICATION) | NULL | NOT + NULL;
+            collateOpt.Rule = Empty | COLLATE + Id_simple;
             typeNameParamsList.Rule = MakePlusRule(typeNameParamsList, comma, term);
             typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")";
-            /*typeName.Rule = ToTerm("BIT") | "DATE" | "TIME" | "TIMESTAMP" | "DECIMAL" | "REAL" | "FLOAT" | "TINYINT" | "SMALLINT" | "INTEGER" | "BIGINT"
-                                         | "INTERVAL" | "CHARACTER"
-                // MS SQL types:  
-                                         | "DATETIME" | "INT" | "DOUBLE" | "CHAR" | "NCHAR" | "VARCHAR" | "NVARCHAR"
-                                         | "IMAGE" | "TEXT" | "NTEXT" | "UNIQUEIDENTIFIER" | "NUMERIC";*/
             constraintDef.Rule = CONSTRAINT + Id + constraintType;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
             constraintType.Rule = defaultValueOpt
-                | primaryKeyStmt + indexTypeOpt + idlistPar + withClauseOpt
-                | UNIQUE + indexTypeOpt + idlistPar
+                | "PRIMARY" + KEY + idlistParOpt
+                | primaryKeyOpt + indexTypeOpt + idlistParOpt
+                | UNIQUE + indexTypeOpt + idlistParOpt
                 | CHECK + "(" + expression + ")"
-                | NOT + NULL + idlistPar
-                | "Foreign" + KEY + idlistPar + "References" + Id + idlistPar;
-            idlistPar.Rule = "(" + orderList + ")";
+                | NOT + NULL + idlistParOpt
+                | "Foreign" + KEY + idlistParOpt + "References" + Id + idlistParOpt + notForReplOpt;
+            idlistParOpt.Rule = Empty | "(" + orderList + ")";
             idlist.Rule = MakePlusRule(idlist, comma, Id);
             defaultValueParamsList.Rule = MakePlusRule(defaultValueParamsList, comma, term);
             idParamList.Rule = MakePlusRule(idParamList, comma, Id);
@@ -182,7 +187,7 @@ namespace Irony.Samples.SQL
             defaultValueParams.Rule = term | "(" + term + ")";
 
             //Create Index
-            primaryKeyStmt.Rule = PRIMARY + KEY;
+            primaryKeyOpt.Rule = Empty | PRIMARY + KEY | typeName;
             createIndexStmt.Rule = CREATE + indexTypeOpt + INDEX + Id + ON + Id + orderList;
             orderList.Rule = MakePlusRule(orderList, comma, orderMember);
             orderMember.Rule = Id + orderDirOpt;
@@ -204,7 +209,7 @@ namespace Irony.Samples.SQL
             dropIndexStmt.Rule = DROP + INDEX + Id + ON + Id;
 
             //Insert stmt
-            insertStmt.Rule = INSERT + intoOpt + Id + idlistPar + insertData;
+            insertStmt.Rule = INSERT + intoOpt + Id + idlistParOpt + insertData;
             insertData.Rule = selectStmt | VALUES + "(" + exprList + ")";
             intoOpt.Rule = Empty | INTO; //Into is optional in MSSQL
 
