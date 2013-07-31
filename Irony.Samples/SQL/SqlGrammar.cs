@@ -59,6 +59,7 @@ namespace Irony.Samples.SQL
             var REPLICATION = ToTerm("REPLICATION");
             var FOR = ToTerm("FOR");
             var COLLATE = ToTerm("COLLATE");
+            var IDENTITY = ToTerm("IDENTITY");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
@@ -140,6 +141,8 @@ namespace Irony.Samples.SQL
             var notForReplOpt = new NonTerminal("notForReplOpt");
             var collateOpt = new NonTerminal("collateOpt");
             var columnDef = new NonTerminal("columnDef");
+            var identityOpt = new NonTerminal("identityOpt");
+            var referencesOpt = new NonTerminal("referencesOpt");
 
             //BNF Rules
             this.Root = stmtList;
@@ -161,16 +164,18 @@ namespace Irony.Samples.SQL
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefList + constraintListOpt + withClauseOpt + ")" + onOpt;
             fieldDefList.Rule = MakePlusRule(fieldDefList, comma, fieldDef);
             fieldDef.Rule = columnDef | constraintListOpt;
-            columnDef.Rule = Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + defaultValueOpt
+            columnDef.Rule = Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + referencesOpt + defaultValueOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + constraintListOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + defaultValueOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + constraintListOpt;
+            referencesOpt.Rule = Empty | "References" + Id + idlistParOpt;
             notForReplOpt.Rule = Empty | (NOT + FOR + REPLICATION);
-            nullSpecOpt.Rule = Empty | (NOT + FOR + REPLICATION) | NULL | NOT + NULL;
+            nullSpecOpt.Rule = Empty | (NOT + FOR + REPLICATION) | NULL | NOT + NULL | NOT + NULL + typeName | NULL + typeName;
             collateOpt.Rule = Empty | COLLATE + Id_simple;
+            identityOpt.Rule = Empty | IDENTITY;
             typeNameParamsList.Rule = MakePlusRule(typeNameParamsList, comma, term);
             typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")";
-            constraintDef.Rule = CONSTRAINT + Id + constraintType;
+            constraintDef.Rule = CONSTRAINT + Id + constraintType + onOpt;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
             constraintType.Rule = defaultValueOpt
                 | "PRIMARY" + KEY + idlistParOpt
@@ -178,7 +183,7 @@ namespace Irony.Samples.SQL
                 | UNIQUE + indexTypeOpt + idlistParOpt
                 | CHECK + "(" + expression + ")"
                 | NOT + NULL + idlistParOpt
-                | "Foreign" + KEY + idlistParOpt + "References" + Id + idlistParOpt + notForReplOpt;
+                | "Foreign" + KEY + idlistParOpt + referencesOpt + notForReplOpt;
             idlistParOpt.Rule = Empty | "(" + orderList + ")";
             idlist.Rule = MakePlusRule(idlist, comma, Id);
             defaultValueParamsList.Rule = MakePlusRule(defaultValueParamsList, comma, term);
