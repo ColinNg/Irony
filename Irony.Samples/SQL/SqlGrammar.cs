@@ -22,6 +22,8 @@ namespace Irony.Samples.SQL
             var number = TerminalFactory.CreateCSharpNumber("number");
             var string_literal = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote);
             var Id_simple = TerminalFactory.CreateSqlExtIdentifier(this, "id_simple"); //covers normal identifiers (abc) and quoted id's ([abc d], "abc d")
+            Id_simple.AddPrefix("@@", IdOptions.NameIncludesPrefix);
+
             var comma = ToTerm(",");
             var dot = ToTerm(".");
             var equals = ToTerm("=");
