@@ -62,6 +62,7 @@ namespace Irony.Samples.SQL
             var FOR = ToTerm("FOR");
             var COLLATE = ToTerm("COLLATE");
             var IDENTITY = ToTerm("IDENTITY");
+            var TEXTIMAGE_ON = ToTerm("TEXTIMAGE_ON");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
@@ -146,6 +147,7 @@ namespace Irony.Samples.SQL
             var identityOpt = new NonTerminal("identityOpt");
             var referencesOpt = new NonTerminal("referencesOpt");
             var fieldDefLists = new NonTerminal("fieldDefLists");
+            var onListOpt = new NonTerminal("onListOpt");
 
             //BNF Rules
             this.Root = stmtList;
@@ -161,18 +163,21 @@ namespace Irony.Samples.SQL
                       | selectStmt | insertStmt | updateStmt | deleteStmt
                       | "GO";
 
-            onOpt.Rule = Empty | ON + Id;
+            onOpt.Rule = Empty | term + Id;
+            onListOpt.Rule = MakePlusRule(onListOpt, onOpt);
 
             fieldDefLists.Rule = MakePlusRule(fieldDefLists, fieldDefList);
 
             //Create table
-            createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefLists + ")" + onOpt;
+            createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefLists + ")" + onListOpt;
             fieldDefList.Rule = MakeListRule(fieldDefList, comma, fieldDef, TermListOptions.AllowTrailingDelimiter | TermListOptions.PlusList);
             fieldDef.Rule = columnDef | constraintListOpt;
             columnDef.Rule = Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + referencesOpt + defaultValueOpt + withClauseOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + constraintListOpt + withClauseOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + defaultValueOpt + withClauseOpt
-                | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + constraintListOpt + withClauseOpt;
+                | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + constraintListOpt + withClauseOpt
+                | primaryKeyOpt + indexTypeOpt + idlistParOpt + withClauseOpt
+                | term;
             referencesOpt.Rule = Empty | "References" + Id + idlistParOpt;
             notForReplOpt.Rule = Empty | (NOT + FOR + REPLICATION);
             nullSpecOpt.Rule = Empty | (NOT + FOR + REPLICATION) | NULL | NOT + NULL | NOT + NULL + typeName | NULL + typeName;
@@ -180,10 +185,9 @@ namespace Irony.Samples.SQL
             identityOpt.Rule = Empty | IDENTITY;
             typeNameParamsList.Rule = MakePlusRule(typeNameParamsList, comma, term);
             typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")";
-            constraintDef.Rule = CONSTRAINT + Id + constraintType + onOpt;
+            constraintDef.Rule = CONSTRAINT + Id + constraintType + onListOpt;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
             constraintType.Rule = defaultValueOpt + withClauseOpt
-                | "PRIMARY" + KEY + idlistParOpt + withClauseOpt
                 | primaryKeyOpt + indexTypeOpt + idlistParOpt + withClauseOpt
                 | UNIQUE + indexTypeOpt + idlistParOpt + withClauseOpt
                 | CHECK + "(" + expression + ")" + withClauseOpt
