@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Irony.Parsing;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Irony.Parsing;
+using System.Threading.Tasks;
 
 namespace Irony.Samples.SQL
 {
-    // Loosely based on SQL89 grammar from Gold parser. Supports some extra TSQL constructs.
+	// Loosely based on SQL89 grammar from Gold parser. Supports some extra TSQL constructs.
 
     [Language("SQL", "89", "SQL 89 grammar")]
     public class SqlGrammar : Grammar
@@ -20,6 +21,7 @@ namespace Irony.Samples.SQL
             NonGrammarTerminals.Add(comment);
             NonGrammarTerminals.Add(lineComment);
             var number = TerminalFactory.CreateCSharpNumber("number");
+            number.Options = NumberOptions.AllowSign;
             var string_literal = new StringLiteral("string", "'", StringOptions.AllowsDoubledQuote);
             string_literal.AddStartEnd("N'", "'", StringOptions.AllowsDoubledQuote | StringOptions.AllowsLineBreak);
             var Id_simple = TerminalFactory.CreateSqlExtIdentifier(this, "id_simple"); //covers normal identifiers (abc) and quoted id's ([abc d], "abc d")
@@ -29,6 +31,7 @@ namespace Irony.Samples.SQL
             var comma = ToTerm(",");
             var dot = ToTerm(".");
             var equals = ToTerm("=");
+            var plus = ToTerm("+");
             var CREATE = ToTerm("CREATE");
             var NULL = ToTerm("NULL");
             var NOT = ToTerm("NOT");
@@ -79,6 +82,37 @@ namespace Irony.Samples.SQL
             var NOCHECK = ToTerm("NOCHECK");
             var CASCADE = ToTerm("CASCADE");
             var TYPE = ToTerm("TYPE");
+            var PROCEDURE = ToTerm("PROCEDURE");
+            var DECLARE = ToTerm("DECLARE");
+            var TRY = ToTerm("TRY");
+            var CATCH = ToTerm("CATCH");
+            var CAST = ToTerm("CAST");
+            var AND = ToTerm("AND");
+            var OR = ToTerm("OR");
+            var GRANT = ToTerm("GRANT");
+            var UNION = ToTerm("UNION");
+            var ALL = ToTerm("ALL");
+            var CASE = ToTerm("CASE");
+            var WHEN = ToTerm("WHEN");
+            var THEN = ToTerm("THEN");
+            var RETURN = ToTerm("RETURN");
+            var COMMIT = ToTerm("COMMIT");
+            var TRAN = ToTerm("TRAN");
+            var TRANSACTION = ToTerm("TRANSACTION");
+            var TOP = ToTerm("TOP");
+            var MERGE = ToTerm("MERGE");
+            var USING = ToTerm("USING");
+            var MATCHED = ToTerm("MATCHED");
+            var TARGET = ToTerm("TARGET");
+            var TRUNCATE = ToTerm("TRUNCATE");
+            var ROLLBACK = ToTerm("ROLLBACK");
+            var STATISTICS = ToTerm("STATISTICS");
+            var ROLE = ToTerm("ROLE");
+            var WHILE = ToTerm("WHILE");
+            var BREAK = ToTerm("BREAK");
+            var REBUILD = ToTerm("REBUILD");
+            var CHECKPOINT = ToTerm("CHECKPOINT");
+            var HASH = ToTerm("HASH");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
@@ -103,15 +137,15 @@ namespace Irony.Samples.SQL
             var fieldDefList = new NonTerminal("fieldDefList");
             var nullSpecOpt = new NonTerminal("nullSpecOpt");
             var typeName = new NonTerminal("typeName");
-            var typeSpec = new NonTerminal("typeSpec");
             var constraintListOpt = new NonTerminal("constraintListOpt");
             var constraintDef = new NonTerminal("constraintDef");
             var indexContraintDef = new NonTerminal("indexContraintDef");
-            var constraintType = new NonTerminal("constraintTypeOpt");
+            var constraintTypeOpt = new NonTerminal("constraintTypeOptOpt");
             var defaultValueOpt = new NonTerminal("defaultValueOpt");
             var idlist = new NonTerminal("idlist");
+            var idOrExpression = new NonTerminal("idOrExpression");
+            var idOrExpressionList = new NonTerminal("idOrExpressionList");
             var idlistForSelect = new NonTerminal("idlistForSelect");
-            var sprocParamList = new NonTerminal("sprocParamList");
             var idlistParOpt = new NonTerminal("idlistPar");
             var orderList = new NonTerminal("orderList");
             var orderMember = new NonTerminal("orderMember");
@@ -126,6 +160,7 @@ namespace Irony.Samples.SQL
             var assignList = new NonTerminal("assignList");
             var whereClauseOpt = new NonTerminal("whereClauseOpt");
             var andClauseOpt = new NonTerminal("andClauseOpt");
+            var betweenClauseOpt = new NonTerminal("betweenClauseOpt");
             var assignment = new NonTerminal("assignment");
             var expression = new NonTerminal("expression");
             var exprList = new NonTerminal("exprList");
@@ -153,8 +188,6 @@ namespace Irony.Samples.SQL
             var binExpr = new NonTerminal("binExpr");
             var binOp = new NonTerminal("binOp");
             var betweenExpr = new NonTerminal("betweenExpr");
-            var inExpr = new NonTerminal("inExpr");
-            var parSelectStmt = new NonTerminal("parSelectStmt");
             var notOpt = new NonTerminal("notOpt");
             var funCall = new NonTerminal("funCall");
             var stmtLine = new NonTerminal("stmtLine");
@@ -177,55 +210,133 @@ namespace Irony.Samples.SQL
             var onListOpt = new NonTerminal("onListOpt");
             var printStmt = new NonTerminal("printStmt");
             var beginEndStmt = new NonTerminal("beginEndStmt");
+            var beginTryCatchStmt = new NonTerminal("beginTryCatchStmt");
             var beginEndStmtList = new NonTerminal("beginEndStmtList");
             var isNullOpt = new NonTerminal("isNullOpt");
             var setStmtOpt = new NonTerminal("setStmtOpt");
             var useStmt = new NonTerminal("useStmt");
             var forOpt = new NonTerminal("forOpt");
             var execStmt = new NonTerminal("execStmt");
-            var sprocParam = new NonTerminal("sprocParam");
             var cascadeOpt = new NonTerminal("cascadeOpt");
             var cascadeListOpt = new NonTerminal("cascadeListOpt");
+            var alterProcedureStmt = new NonTerminal("alterProcedureStmt");
+            var declareStmt = new NonTerminal("declareStmt");
+            var concatStringItem = new NonTerminal("concatStringItem");
+            var concatStringList = new NonTerminal("concatStringList");
+            var castFunCall = new NonTerminal("castFunCall");
+            var funCallList = new NonTerminal("funCallList");
+            var funcallDelim = new NonTerminal("funcallDelim");
+            var declareList = new NonTerminal("declareList");
+            var declareListItem = new NonTerminal("declareListItem");
+            var grantStmt = new NonTerminal("grantStmt");
+            var joinChainOptList = new NonTerminal("joinChainOptList");
+            var leftParenOpt = new NonTerminal("leftParenOpt");
+            var rightParenOpt = new NonTerminal("rightParenOpt");
+            var unionAllOpt = new NonTerminal("unionAllOpt");
+            var selectCaseStmt = new NonTerminal("selectCaseStmt");
+            var unionAllListOpt = new NonTerminal("unionAllListOpt");
+            var returnStmt = new NonTerminal("returnStmt");
+            var beginTransStmt = new NonTerminal("beginTransStmt");
+            var rollbackTransStmt = new NonTerminal("rollbackTransStmt");
+            var topOpt = new NonTerminal("topOpt");
+            var mergeStmt = new NonTerminal("mergeStmt");
+            var mergeWhenMatched = new NonTerminal("mergeWhenMatched");
+            var mergeWhenNotMatched = new NonTerminal("mergeWhenNotMatched");
+            var truncateStmt = new NonTerminal("truncateStmt");
+            var commitTransStmt = new NonTerminal("commitTransStmt");
+            var noLockOpt = new NonTerminal("noLockOpt");
+            var declareTableStmt = new NonTerminal("declareTableStmt");
+            var joinStmtOpt = new NonTerminal("joinStmtOpt");
+            var forXmlStmtOpt = new NonTerminal("forXmlStmtOpt");
+            var forXmlFunCallList = new NonTerminal("forXmlFunCallList");
+            var funArgsList = new NonTerminal("funArgsList");
+            var updateStatisticsStmt = new NonTerminal("updateStatisticsStmt");
+            var createRoleStmt = new NonTerminal("createRoleStmt");
+            var whileStmt = new NonTerminal("whileStmt");
+            var alterIndexStmt = new NonTerminal("alterIndexStmt");
+            var ifCondition = new NonTerminal("ifCondition");
+            var ifConditionChain = new NonTerminal("ifConditionChain");
+            var hashOpt = new NonTerminal("hashOpt");
+            var IdAsType = new NonTerminal("IdAsType");
+            var selectWithUnion = new NonTerminal("selectWithUnion");
+            var withStmt = new NonTerminal("withStmt");
 
             //BNF Rules
             this.Root = stmtList;
             stmtLine.Rule = stmt + semiOpt;
             semiOpt.Rule = Empty | ";";
             stmtList.Rule = MakePlusRule(stmtList, stmtLine);
-            setStmtOpt.Rule = Empty | SET + Id + Id;
+            setStmtOpt.Rule = Empty | SET + Id + Id | SET + Id + equals + (leftParenOpt + selectStmt + rightParenOpt | Id | funCall | concatStringList | expression);
             useStmt.Rule = USE + Id;
-            execStmt.Rule = EXEC + Id + sprocParamList;
+            execStmt.Rule = EXEC + (Empty | Id | Id + ".." + Id) + (leftParenOpt + funArgsList + rightParenOpt);
+            declareStmt.Rule = DECLARE + declareList;
+            declareTableStmt.Rule = DECLARE + Id + TABLE + "(" + fieldDefList + ")";
+            declareListItem.Rule = Id + typeName
+                                 | Id + typeName + equals + term;
+            declareList.Rule = MakePlusRule(declareList, comma, declareListItem);
+            castFunCall.Rule = CAST + "(" + funCall + asOpt + (Empty | typeName) + ")" + asOpt + (Empty | typeName);
+            grantStmt.Rule = GRANT + term + ON + TYPE + "::" + Id + "TO" + Id;
+            returnStmt.Rule = RETURN + term;
+            leftParenOpt.Rule = Empty | "(";
+            rightParenOpt.Rule = Empty | ")";
+            unionAllOpt.Rule = Empty | UNION + ALL + leftParenOpt + selectStmt + rightParenOpt;
+            unionAllListOpt.Rule = MakeStarRule(unionAllListOpt, unionAllOpt);
+            idOrExpression.Rule = Id | expression;
+            idOrExpressionList.Rule = MakeStarRule(idOrExpressionList, comma, idOrExpression);
+            whileStmt.Rule = WHILE + expression + beginEndStmt;
 
             //ID
             Id.Rule = MakePlusRule(Id, dot, Id_simple);
             IdWithAliasOpt.Rule = Id | Id + Id | Id + AS + Id;
+            IdAsType.Rule = Id + AS + typeName;
+            concatStringItem.Rule = leftParenOpt + term + rightParenOpt;
+            concatStringList.Rule = MakePlusRule(concatStringList, plus, concatStringItem);
 
-            stmt.Rule = createTableStmt | createIndexStmt | createViewStmt | createTypeStmt
-                      | alterStmt | dropTableStmt | dropIndexStmt | dropViewStmt
-                      | selectStmt | insertStmt | updateStmt | deleteStmt
-                      | GO | ifStmt | elseStmt | beginEndStmt | printStmt
-                      | execStmt | setStmtOpt | useStmt | ";";
+            stmt.Rule = createTableStmt | createIndexStmt | createViewStmt | createTypeStmt | createRoleStmt
+                      | declareTableStmt | alterStmt | dropTableStmt | dropIndexStmt | dropViewStmt
+                      | selectWithUnion | insertStmt | updateStmt | deleteStmt | whileStmt
+                      | GO | ifStmt | elseStmt | beginEndStmt | printStmt | withStmt
+                      | execStmt | setStmtOpt | useStmt | funCall | declareStmt | returnStmt
+                      | grantStmt | mergeStmt | truncateStmt | updateStatisticsStmt
+                      | beginTransStmt | commitTransStmt | rollbackTransStmt
+                      | BREAK | CHECKPOINT
+                      | ";";
 
             onOpt.Rule = Empty | ON + Id;
             textImageOnOpt.Rule = Empty | TEXTIMAGE_ON + Id;
             forOpt.Rule = Empty | FOR + Id;
             onListOpt.Rule = MakePlusRule(onListOpt, onOpt);
-
+            withStmt.Rule = WITH + Id + AS + leftParenOpt + selectStmt + rightParenOpt;
             fieldDefLists.Rule = MakePlusRule(fieldDefLists, fieldDefList);
 
-            printStmt.Rule = PRINT + string_literal;
+            printStmt.Rule = PRINT + concatStringList;
 
             beginEndStmtList.Rule = MakePlusRule(beginEndStmtList, stmt);
-            beginEndStmt.Rule = BEGIN + beginEndStmtList + END;
-
+            beginEndStmt.Rule = beginTryCatchStmt | BEGIN + beginEndStmtList + END;
+            beginTryCatchStmt.Rule = BEGIN + TRY + beginEndStmtList + END + TRY + BEGIN + CATCH + beginEndStmtList + END + CATCH;
+            beginTransStmt.Rule = BEGIN + (TRAN | TRANSACTION) + (Empty | Id);
+            commitTransStmt.Rule = COMMIT + (TRAN | TRANSACTION) + (Empty | Id);
+            rollbackTransStmt.Rule = ROLLBACK + (TRAN | TRANSACTION) + (Empty | Id);
+            truncateStmt.Rule = TRUNCATE + TABLE + Id;
             isNullOpt.Rule = Empty | IS + NULL;
 
+            funcallDelim.Rule = AND | OR;
+            funCallList.Rule = MakePlusRule(funCallList, funcallDelim, funCall);
+
             // If
-            ifStmt.Rule = IF + notOpt + funCall + isNullOpt;
+            ifStmt.Rule = IF + leftParenOpt + ifConditionChain + rightParenOpt;
+            ifCondition.Rule = (notOpt + funCall + isNullOpt | NOT + leftParenOpt + expression + rightParenOpt)
+                | (Empty | "EXISTS") + "(" + (Id_simple + IS + NULL | settingListItem | selectWithUnion) + ")"
+                | "EXISTS" + "(" + selectWithUnion + ")"
+                | (Id_simple + IS + (Empty | NOT) + NULL | settingListItem)
+                | expression;
+            ifConditionChain.Rule = MakePlusRule(ifConditionChain, AND | OR, ifCondition);
             elseStmt.Rule = ELSE;
 
-            createViewStmt.Rule = CREATE + VIEW + Id + AS + selectStmt;
-            createTypeStmt.Rule = CREATE + TYPE + Id + FROM + Id;
+            createRoleStmt.Rule = CREATE + ROLE + Id;
+            createViewStmt.Rule = CREATE + VIEW + Id + AS + leftParenOpt + selectWithUnion + rightParenOpt + unionAllListOpt;
+            createTypeStmt.Rule = CREATE + TYPE + Id + FROM + Id
+                                | CREATE + TYPE + Id + AS + TABLE + "(" + fieldDefLists + ")";
 
             //Create table
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefLists + ")" + (onOpt | withClauseOpt) + textImageOnOpt;
@@ -235,6 +346,7 @@ namespace Irony.Samples.SQL
                 | Id + typeName + collateOpt + primaryKeyOpt + nullSpecOpt + constraintListOpt + withClauseOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + defaultValueOpt + withClauseOpt
                 | Id + typeName + collateOpt + primaryKeyOpt + notForReplOpt + nullSpecOpt + constraintListOpt + withClauseOpt
+                | Id + typeName + equals + term
                 | primaryKeyOpt + indexTypeOpt + idlistParOpt + withClauseOpt
                 | term;
             referencesOpt.Rule = Empty | "References" + Id + idlistParOpt;
@@ -243,11 +355,11 @@ namespace Irony.Samples.SQL
             collateOpt.Rule = Empty | COLLATE + Id_simple;
             identityOpt.Rule = Empty | IDENTITY;
             typeNameParamsList.Rule = MakePlusRule(typeNameParamsList, comma, term);
-            typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")";
-            constraintDef.Rule = CONSTRAINT + Id + constraintType + onListOpt;
-            indexContraintDef.Rule = constraintType + onListOpt;
+            typeName.Rule = Id_simple | Id_simple + "(" + typeNameParamsList + ")" | Id_simple + "(max)";
+            constraintDef.Rule = CONSTRAINT + Id + constraintTypeOpt + onListOpt;
+            indexContraintDef.Rule = constraintTypeOpt + onListOpt;
             constraintListOpt.Rule = MakeStarRule(constraintListOpt, constraintDef);
-            constraintType.Rule = defaultValueOpt + withClauseOpt
+            constraintTypeOpt.Rule = Empty | defaultValueOpt + withClauseOpt
                 | primaryKeyOpt + indexTypeList + idlistParOpt + withClauseOpt
                 | CHECK + "(" + expression + ")" + withClauseOpt
                 | NOT + NULL + idlistParOpt + withClauseOpt
@@ -257,15 +369,12 @@ namespace Irony.Samples.SQL
             idlist.Rule = MakePlusRule(idlist, comma, Id);
             idlistForSelect.Rule = MakePlusRule(idlist, comma, IdWithAliasOpt);
             defaultValueParamsList.Rule = MakePlusRule(defaultValueParamsList, comma, term);
-            sprocParam.Rule = Id + "=" + term;
-            sprocParamList.Rule = MakePlusRule(sprocParamList, comma, sprocParam);
             defaultValueOpt.Rule = Empty | (DEFAULT + defaultValueParams);
             defaultValueParams.Rule = term | "(" + term + ")";
 
             //Create Index
             primaryKeyOpt.Rule = Empty | PRIMARY + KEY | typeName;
-            createIndexStmt.Rule = CREATE + indexTypeList + INDEX + Id + onOpt + "(" + orderList + ")" + withClauseOpt + onOpt
-                                 | CREATE + indexTypeList + INDEX + Id + onOpt + "(" + orderList + ")" + constraintType + whereClauseOpt + onOpt;
+            createIndexStmt.Rule = CREATE + indexTypeList + INDEX + Id + onOpt + "(" + orderList + ")" + constraintTypeOpt + whereClauseOpt + withClauseOpt + onOpt;
             orderList.Rule = MakePlusRule(orderList, comma, orderMember);
             orderMember.Rule = Id + orderDirOpt;
             orderDirOpt.Rule = Empty | "ASC" | "DESC";
@@ -274,18 +383,22 @@ namespace Irony.Samples.SQL
             settingList.Rule = MakePlusRule(settingList, comma, settingListItem);
             settingListItem.Rule = Id + equals + term;
             withClauseOpt.Rule = Empty | (WITH + PRIMARY | WITH + "Disallow" + NULL | WITH + "Ignore" + NULL | WITH + "(" + settingList + ")" + onOpt + textImageOnOpt);
-
             cascadeOpt.Rule = Empty | (ON + (UPDATE | DELETE) + CASCADE);
             cascadeListOpt.Rule = MakePlusRule(cascadeListOpt, cascadeOpt);
+            noLockOpt.Rule = (Empty | WITH + leftParenOpt + "NOLOCK" + rightParenOpt);
 
             //Alter 
-            alterStmt.Rule = ALTER + (TABLE | DATABASE) + Id + setStmtOpt + alterCmdOpt;
+            alterStmt.Rule = ALTER + (TABLE | DATABASE) + Id + setStmtOpt + alterCmdOpt
+                             | alterProcedureStmt
+                             | alterIndexStmt;
             alterCmdOpt.Rule = Empty | ADD + COLUMN + fieldDefList + constraintDef
                           | CHECK + CONSTRAINT + Id
-                          | WITH + (CHECK | NOCHECK) + ADD + CONSTRAINT + Id + constraintType + cascadeListOpt
+                          | WITH + (CHECK | NOCHECK) + ADD + CONSTRAINT + Id + constraintTypeOpt + cascadeListOpt
                           | ADD + constraintDef + forOpt
                           | DROP + COLUMN + Id
                           | DROP + CONSTRAINT + Id;
+            alterProcedureStmt.Rule = ALTER + PROCEDURE + Id + leftParenOpt + fieldDefLists + rightParenOpt + asOpt + beginEndStmt;
+            alterIndexStmt.Rule = ALTER + INDEX + Id + ON + Id + REBUILD + WITH + "(" + settingList + ")";
 
             //Drop stmts
             dropTableStmt.Rule = DROP + TABLE + Id;
@@ -293,47 +406,61 @@ namespace Irony.Samples.SQL
             dropViewStmt.Rule = DROP + VIEW + Id;
 
             //Insert stmt
-            insertStmt.Rule = INSERT + intoOpt + Id + idlistParOpt + insertData;
-            insertData.Rule = selectStmt | VALUES + "(" + exprList + ")";
+            insertStmt.Rule = INSERT + (Empty | intoOpt + Id) + (idlistParOpt + insertData | execStmt);
+            insertData.Rule = leftParenOpt + selectWithUnion + rightParenOpt | VALUES + "(" + exprList + ")";
             intoOpt.Rule = Empty | INTO; //Into is optional in MSSQL
 
             //Update stmt
-            updateStmt.Rule = UPDATE + Id + SET + assignList + whereClauseOpt + andClauseOpt;
+            updateStmt.Rule = UPDATE + topOpt + (Empty | Id) + SET + assignList + fromClauseOpt + joinStmtOpt + whereClauseOpt + andClauseOpt;
             assignList.Rule = MakePlusRule(assignList, comma, assignment);
             assignment.Rule = Id + "=" + expression;
+            updateStatisticsStmt.Rule = UPDATE + STATISTICS + Id;
 
             //Delete stmt
-            deleteStmt.Rule = DELETE + FROM + Id + whereClauseOpt + andClauseOpt;
+            deleteStmt.Rule = DELETE + (Empty | FROM) + Id + whereClauseOpt + andClauseOpt;
 
             //Select stmt
-            selectStmt.Rule = SELECT + selRestrOpt + selList + intoClauseOpt + fromClauseOpt + joinChainOpt + whereClauseOpt + andClauseOpt +
-                              groupClauseOpt + havingClauseOpt + orderClauseOpt;
+            selectCaseStmt.Rule = CASE + WHEN + leftParenOpt + expression + rightParenOpt + THEN + term + ELSE + Id + END + (Empty | asOpt + Id);
+            selectStmt.Rule =  SELECT + topOpt + selRestrOpt + selList + intoClauseOpt + fromClauseOpt + forXmlStmtOpt + joinChainOptList + whereClauseOpt + andClauseOpt +
+                              betweenClauseOpt + groupClauseOpt + havingClauseOpt + orderClauseOpt;
+            selectWithUnion.Rule = MakePlusRule(selectWithUnion, UNION, selectStmt);
+            mergeStmt.Rule = MERGE + Id + AS + Id + USING + (Empty | Id) + leftParenOpt + (Empty | selectWithUnion) + rightParenOpt + AS + Id + ON + expression + mergeWhenMatched +
+                                mergeWhenNotMatched + mergeWhenNotMatched;
+            mergeWhenMatched.Rule = WHEN + MATCHED + andClauseOpt + THEN + stmt;
+            mergeWhenNotMatched.Rule = Empty | WHEN + NOT + MATCHED + BY + Id + THEN + stmt;
+            forXmlStmtOpt.Rule = Empty | FOR + "XML" + forXmlFunCallList;
+            forXmlFunCallList.Rule = MakePlusRule(forXmlFunCallList, comma, funCall);
+
+            topOpt.Rule = Empty | TOP + leftParenOpt + (number | Id) + rightParenOpt;
             selRestrOpt.Rule = Empty | "ALL" | "DISTINCT";
-            selList.Rule = columnItemList | "*";
+            selList.Rule = columnItemList + semiOpt | "*";
             columnItemList.Rule = MakePlusRule(columnItemList, comma, columnItem);
-            columnItem.Rule = columnSource + aliasOpt;
+            columnItem.Rule = columnSource;
             aliasOpt.Rule = Empty | asOpt + Id;
             asOpt.Rule = Empty | AS;
-            columnSource.Rule = aggregate | Id;
+            columnSource.Rule = Id + aliasOpt | Id + "=" + (selectCaseStmt | concatStringList | expression) | expression | expression + asOpt + (Empty | Id) | selectCaseStmt;
             aggregate.Rule = aggregateName + "(" + aggregateArg + ")";
             aggregateArg.Rule = expression | "*";
             aggregateName.Rule = COUNT | "Avg" | "Min" | "Max" | "StDev" | "StDevP" | "Sum" | "Var" | "VarP";
             intoClauseOpt.Rule = Empty | INTO + Id;
-            fromClauseOpt.Rule = Empty | FROM + idlistForSelect + joinChainOpt;
-            joinChainOpt.Rule = Empty | joinKindOpt + JOIN + idlist + ON + Id + "=" + Id;
-            joinKindOpt.Rule = Empty | "INNER" | "LEFT" | "RIGHT";
+            fromClauseOpt.Rule = Empty | FROM + leftParenOpt + (selectStmt | funCall | idlistForSelect) + rightParenOpt + (Empty | AS + Id) + noLockOpt;
+            joinStmtOpt.Rule = Empty | JOIN + Id + asOpt + Id + noLockOpt + ON + expression;
+            joinChainOpt.Rule = Empty | joinKindOpt + hashOpt + joinStmtOpt;
+            joinChainOptList.Rule = MakeStarRule(joinChainOptList, joinChainOpt);
+            joinKindOpt.Rule = Empty | "INNER" | "OUTER" | "LEFT" | "RIGHT";
+            hashOpt.Rule = Empty | HASH;
             whereClauseOpt.Rule = Empty | "WHERE" + expression;
             andClauseOpt.Rule = Empty | "AND" + expression;
-            groupClauseOpt.Rule = Empty | "GROUP" + BY + idlist;
+            betweenClauseOpt.Rule = Empty | "BETWEEN" + expression;
+            groupClauseOpt.Rule = Empty | "GROUP" + BY + idOrExpressionList;
             havingClauseOpt.Rule = Empty | "HAVING" + expression;
             orderClauseOpt.Rule = Empty | "ORDER" + BY + orderList;
 
             //Expression
             exprList.Rule = MakePlusRule(exprList, comma, expression);
-            expression.Rule = term | unExpr | binExpr;// | betweenExpr; //-- BETWEEN doesn't work - yet; brings a few parsing conflicts 
-            term.Rule = Id | string_literal | number | funCall | tuple | parSelectStmt;// | inStmt;
+            expression.Rule = term | unExpr | binExpr | betweenExpr; //-- BETWEEN doesn't work - yet; brings a few parsing conflicts 
+            term.Rule = Id | IdAsType | string_literal | number | funCall | tuple | aggregate;// | inStmt;
             tuple.Rule = "(" + exprList + ")";
-            parSelectStmt.Rule = "(" + selectStmt + ")";
             unExpr.Rule = unOp + term;
             unOp.Rule = NOT | "+" | "-" | "~";
             binExpr.Rule = expression + binOp + expression;
@@ -343,9 +470,11 @@ namespace Irony.Samples.SQL
                        | "AND" | "OR" | "LIKE" | NOT + "LIKE" | IS | "IN" | NOT + "IN";
             betweenExpr.Rule = expression + notOpt + "BETWEEN" + expression + "AND" + expression;
             notOpt.Rule = Empty | NOT;
+
             //funCall covers some psedo-operators and special forms like ANY(...), SOME(...), ALL(...), EXISTS(...), IN(...)
-            funCall.Rule = Id + "(" + funArgsOpt + ")";
-            funArgsOpt.Rule = Empty | selectStmt | exprList;
+            funCall.Rule = Id + "(" + funArgsList + ")" + (Empty | AS + typeName);
+            funArgsOpt.Rule = Empty | selectStmt | expression | string_literal | Id + "=" + term;
+            funArgsList.Rule = MakePlusRule(funArgsList, comma, funArgsOpt);
             inStmt.Rule = expression + "IN" + "(" + exprList + ")";
 
             //Operators
@@ -368,4 +497,4 @@ namespace Irony.Samples.SQL
 
         }//constructor
     }//class
-}//namespace
+}
