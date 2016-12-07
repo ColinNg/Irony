@@ -113,6 +113,7 @@ namespace Irony.Samples.SQL
             var REBUILD = ToTerm("REBUILD");
             var CHECKPOINT = ToTerm("CHECKPOINT");
             var HASH = ToTerm("HASH");
+            var OUTPUT = ToTerm("OUTPUT");
 
             //Non-terminals
             var Id = new NonTerminal("Id");
@@ -122,11 +123,17 @@ namespace Irony.Samples.SQL
             var createIndexStmt = new NonTerminal("createIndexStmt");
             var createViewStmt = new NonTerminal("createViewStmt");
             var createTypeStmt = new NonTerminal("createTypeStmt");
+            var createProcedureStmt = new NonTerminal("createProcedureStmt");
+            var variableDefLists = new NonTerminal("variableDefLists");
+            var variableDefList = new NonTerminal("variableDefList");
+            var variableDef = new NonTerminal("variableDef");
+            var outputOpt = new NonTerminal("outputOpt");
             var primaryKeyOpt = new NonTerminal("primaryKeyOpt");
             var alterStmt = new NonTerminal("alterStmt");
             var dropTableStmt = new NonTerminal("dropTableStmt");
             var dropIndexStmt = new NonTerminal("dropIndexStmt");
             var dropViewStmt = new NonTerminal("dropViewStmt");
+            var dropProcedureStmt = new NonTerminal("dropProcedureStmt");
             var selectStmt = new NonTerminal("selectStmt");
             var insertStmt = new NonTerminal("insertStmt");
             var updateStmt = new NonTerminal("updateStmt");
@@ -233,7 +240,11 @@ namespace Irony.Samples.SQL
             var leftParenOpt = new NonTerminal("leftParenOpt");
             var rightParenOpt = new NonTerminal("rightParenOpt");
             var unionAllOpt = new NonTerminal("unionAllOpt");
+            var selectCaseStmts = new NonTerminal("selectCaseStmts");
             var selectCaseStmt = new NonTerminal("selectCaseStmt");
+            var caseWhenThenLists = new NonTerminal("caseWhenThenLists");
+            var caseWhenThenList = new NonTerminal("caseWhenThenList");
+            var caseWhenThenStmt = new NonTerminal("caseWhenThenStmt");
             var unionAllListOpt = new NonTerminal("unionAllListOpt");
             var returnStmt = new NonTerminal("returnStmt");
             var beginTransStmt = new NonTerminal("beginTransStmt");
@@ -292,8 +303,8 @@ namespace Irony.Samples.SQL
             concatStringItem.Rule = leftParenOpt + term + rightParenOpt;
             concatStringList.Rule = MakePlusRule(concatStringList, plus, concatStringItem);
 
-            stmt.Rule = createTableStmt | createIndexStmt | createViewStmt | createTypeStmt | createRoleStmt
-                      | declareTableStmt | alterStmt | dropTableStmt | dropIndexStmt | dropViewStmt
+            stmt.Rule = createProcedureStmt | createTableStmt | createIndexStmt | createViewStmt | createTypeStmt | createRoleStmt
+                      | declareTableStmt | alterStmt | dropTableStmt | dropIndexStmt | dropViewStmt | dropProcedureStmt 
                       | selectWithUnion | insertStmt | updateStmt | deleteStmt | whileStmt
                       | GO | ifStmt | elseStmt | beginEndStmt | printStmt | withStmt
                       | execStmt | setStmtOpt | useStmt | funCall | declareStmt | returnStmt
@@ -337,6 +348,13 @@ namespace Irony.Samples.SQL
             createViewStmt.Rule = CREATE + VIEW + Id + AS + leftParenOpt + selectWithUnion + rightParenOpt + unionAllListOpt;
             createTypeStmt.Rule = CREATE + TYPE + Id + FROM + Id
                                 | CREATE + TYPE + Id + AS + TABLE + "(" + fieldDefLists + ")";
+
+            //Create procedure
+            createProcedureStmt.Rule = CREATE + PROCEDURE + Id + "(" + variableDefLists + ")" + AS + BEGIN + stmtList + END;
+            variableDefLists.Rule = MakePlusRule(variableDefLists, variableDefList);
+            variableDefList.Rule = MakeListRule(variableDefList, comma, variableDef, TermListOptions.AllowTrailingDelimiter | TermListOptions.PlusList);
+            variableDef.Rule = Id + typeName + outputOpt;
+            outputOpt.Rule = Empty | OUTPUT;
 
             //Create table
             createTableStmt.Rule = CREATE + TABLE + Id + "(" + fieldDefLists + ")" + (onOpt | withClauseOpt) + textImageOnOpt;
@@ -404,6 +422,7 @@ namespace Irony.Samples.SQL
             dropTableStmt.Rule = DROP + TABLE + Id;
             dropIndexStmt.Rule = DROP + INDEX + Id + ON + Id;
             dropViewStmt.Rule = DROP + VIEW + Id;
+            dropProcedureStmt.Rule = DROP + PROCEDURE + Id;
 
             //Insert stmt
             insertStmt.Rule = INSERT + (Empty | intoOpt + Id) + (idlistParOpt + insertData | execStmt);
@@ -420,7 +439,12 @@ namespace Irony.Samples.SQL
             deleteStmt.Rule = DELETE + (Empty | FROM) + Id + whereClauseOpt + andClauseOpt;
 
             //Select stmt
-            selectCaseStmt.Rule = CASE + WHEN + leftParenOpt + expression + rightParenOpt + THEN + term + ELSE + Id + END + (Empty | asOpt + Id);
+            selectCaseStmt.Rule = CASE + caseWhenThenLists + ELSE + expression + END + (Empty | asOpt + Id);
+            caseWhenThenLists.Rule = MakePlusRule(caseWhenThenLists, caseWhenThenList);
+            caseWhenThenList.Rule = WHEN + leftParenOpt + expression + rightParenOpt + THEN + term;
+            variableDef.Rule = Id + typeName + outputOpt;
+
+
             selectStmt.Rule =  SELECT + topOpt + selRestrOpt + selList + intoClauseOpt + fromClauseOpt + forXmlStmtOpt + joinChainOptList + whereClauseOpt + andClauseOpt +
                               betweenClauseOpt + groupClauseOpt + havingClauseOpt + orderClauseOpt;
             selectWithUnion.Rule = MakePlusRule(selectWithUnion, UNION, selectStmt);
